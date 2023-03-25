@@ -33,8 +33,32 @@ const initialQuestions = [
       {
         type:"input",
         message:"What is the name of the role you would like to add?",
-        name:"addRole",
+        name:"addRoleName",
+        validate: (value)=>{
+            if(value.length){
+                return true;
+            }
+        },
         when:(answer)=> answer.selection === "Add a role"
+      },
+      {
+        type:"input",
+        message:"What is the salary of that role?",
+        name:"addRoleSalary",
+        validate: (value)=>{
+            if(value.length){
+                return true;
+            }
+        },
+        when:(answer)=> Boolean(answer.addRoleName)
+      },
+      {
+        //need to make the choices dynamic and take new input from departments
+        type:"list",
+        message:"What department is that role in",
+        choices:["finance","legal"],
+        name:"addRoleDept",
+        when:(answer)=> Boolean(answer.addRoleSalary)
       },
 
       {
@@ -55,6 +79,32 @@ const initialQuestions = [
         name:"addEmployeeLastName",
         when:(answer)=> Boolean(answer.addEmployeeFirstName)
       },
+      
+      {
+        type:"list",
+        message:"What is the role of the employee?",
+        choices:["Salesperson","engineer"],
+        name:"addEmployeeRole",
+        validate: (value)=>{
+            if(value.length){
+                return true;
+            }
+        },
+        when:(answer)=> Boolean(answer.addEmployeeLastName)
+      },
+
+      {
+        type:"list",
+        message:"Who is the employee's Manager?",
+        choices:["Allen","Marcus"],
+        name:"addEmployeeManager",
+        validate: (value)=>{
+            if(value.length){
+                return true;
+            }
+        },
+        when:(answer)=> Boolean(answer.addEmployeeRole)
+      },
 
       {
         type:"input",
@@ -62,6 +112,26 @@ const initialQuestions = [
         name:"addDepartment",
         when:(answer)=> answer.selection === "Add a department"
       },
+
+      {
+        type:"list",
+        message:"Which employee would you like to update?",
+        choices:["brett"],
+        name:"updateEmployee",
+        validate: (value)=>{
+            if(value){
+                return true;
+            }
+        },
+        when:(answer)=> answer.selection === "Update an employee role"
+      },
+      {
+        type:"list",
+        message:"What is their new role?",
+        choices:["cat","dog"],
+        name:"updateEmployeeRole",
+        when:(answer)=> answer.updateEmployee
+      }
 
 ]
 
