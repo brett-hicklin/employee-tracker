@@ -23,26 +23,47 @@ const initialQuestions = [
       },
 ]
 
-// const viewDepartment = [
-
-//     {
-
-
-//     }
-// ]
 
 inquirer.prompt(initialQuestions).then((data)=>{
-
-if (data.selection === "View all departments"){
-    db.query('SELECT * FROM department', (err, result)=>{
-      if(err){
-        console.log(err)
-      } else {
-        console.table(result)
-      }
-    })
-}
-})
+    switch (data.selection) {
+      case "View all departments":
+        db.query('SELECT * FROM department', (err, result)=>{
+          if(err){
+            console.log(err)
+          } else {
+            console.table(result)
+          }
+        })
+        break;
+      case "View all roles":
+        db.query('SELECT * FROM role', (err, result)=>{
+          if(err){
+            console.log(err)
+          } else {
+            console.table(result)
+          }
+        })
+        break;
+      case "View all employees":
+        // Handle view all employees case
+        break;
+      case "Add a department":
+        // Handle add a department case
+        break;
+      case "Add a role":
+        // Handle add a role case
+        break;
+      case "Add an employee":
+        // Handle add an employee case
+        break;
+      case "Update an employee role":
+        // Handle update an employee role case
+        break;
+      default:
+        console.log("Invalid selection");
+    }
+  })
+  
 
 //if view all departments then db.query('SELECT * FROM department')
 //if view all roles then db.query('SELECT * FROM role')
