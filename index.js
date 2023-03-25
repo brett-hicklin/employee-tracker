@@ -1,6 +1,7 @@
 const inquirer = require ('inquirer');
 const mysql = require('mysql2')
 const cTable = require('console.table');
+const { validateHeaderValue } = require('http');
 
 const db = mysql.createConnection(
     {
@@ -21,6 +22,47 @@ const initialQuestions = [
         name: "selection",
        // when: (answer) => answer.addEmployee === true
       },
+
+      {
+        type:"input",
+        message:"What is the name of the department you would like to add?",
+        name:"addDepartment",
+        when:(answer)=> answer.selection === "Add a department"
+      },
+
+      {
+        type:"input",
+        message:"What is the name of the role you would like to add?",
+        name:"addRole",
+        when:(answer)=> answer.selection === "Add a role"
+      },
+
+      {
+        type:"input",
+        message:"What is the first name of the employee?",
+        name:"addEmployeeFirstName",
+        validate: (value)=>{
+            if(value.length){
+                return true;
+            }
+        },
+        when:(answer)=> answer.selection === "Add an employee"
+      },
+
+      {
+        type:"input",
+        message:"What is the last name of the employee?",
+        name:"addEmployeeLastName",
+        when:(answer)=> Boolean(answer.addEmployeeFirstName)
+      },
+
+      {
+        type:"input",
+        message:"What is the name of the department you would like to add?",
+        name:"addDepartment",
+        when:(answer)=> answer.selection === "Add a department"
+      },
+
 ]
 
 
@@ -45,10 +87,18 @@ inquirer.prompt(initialQuestions).then((data)=>{
         })
         break;
       case "View all employees":
-        // Handle view all employees case
+        // Handle view all employees case need to add salary and department. join?
+        db.query('SELECT * FROM employee', (err, result)=>{
+            if(err){
+              console.log(err)
+            } else {
+              console.table(result)
+            }
+        })
         break;
       case "Add a department":
         // Handle add a department case
+
         break;
       case "Add a role":
         // Handle add a role case
