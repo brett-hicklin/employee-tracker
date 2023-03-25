@@ -165,7 +165,11 @@ return inquirer.prompt(initialQuestions).then((data)=>{
       case "Add a department":
         // Handle add a department case
         return inquirer.prompt(addDept).then((data)=>{
-            console.log(data)
+            db.query(`INSERT INTO department(name) VALUES ("${data.addDepartment}")`, (err)=>{
+                if(err){
+                  console.log(err)
+                } 
+            })
         });
 
        
