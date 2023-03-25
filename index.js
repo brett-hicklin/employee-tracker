@@ -1,7 +1,7 @@
 const inquirer = require ('inquirer');
 const mysql = require('mysql2')
 const cTable = require('console.table');
-const { validateHeaderValue } = require('http');
+
 
 const db = mysql.createConnection(
     {
@@ -54,10 +54,10 @@ const addRole = [
         when:(answer)=> Boolean(answer.addRoleName)
       },
       {
-        //need to make the choices dynamic and take new input from departments
+       
         type:"list",
         message:"What department is that role in",
-        choices:["finance","legal"],
+        choices:[],
         name:"addRoleDept",
         when:(answer)=> Boolean(answer.addRoleSalary)
       },
@@ -131,17 +131,18 @@ const addRole = [
 
 ]
 
+
 function startPrompt(){
 return inquirer.prompt(initialQuestions).then((data)=>{
     switch (data.selection) {
       case "View all departments":
         db.query('SELECT * FROM department', (err, result)=>{
-          if(err){
-            console.log(err)
-          } else {
-            console.table(result)
-          }
-        })
+            if(err){
+              console.log(err)
+            } else {
+              console.table(result)
+            }
+          })
         break;
       case "View all roles":
         db.query('SELECT * FROM role', (err, result)=>{
@@ -168,20 +169,56 @@ return inquirer.prompt(initialQuestions).then((data)=>{
             db.query(`INSERT INTO department(name) VALUES ("${data.addDepartment}")`, (err)=>{
                 if(err){
                   console.log(err)
-                } 
+                } else {
+                    console.log("Department successfully added!")
+                }
             })
         });
 
-       
       case "Add a role":
         // Handle add a role case
-        return inquirer.prompt(addRole).then((data)=>{
-            console.log(data)
-        });
-       
+        
+        db.query('SELECT * FROM department', (err, result)=>{
+            if(err){
+              console.log(err)
+            } else {
+              
+              let deptArr =[];
+              result.forEach(dept=>{
+                deptArr.push(dept.name)
+              })
+              addRole[2].choices = deptArr;
+
+              return inquirer.prompt(addRole).then((data)=>{
+                let deptId;
+                result.forEach(dept=>{
+                    if(data.addRoleDept === dept.name){
+                        deptId = dept.id
+                    }
+                    
+                })
+                db.query(`INSERT INTO role(title,salary,department_id) VALUES ("${data.addRoleName}","${data.addRoleSalary}","${deptId}")`, (err,result)=>{
+                    if(err){
+                      console.log(err)
+                    } else {
+                        console.log("Role successfully added!")
+                    }
+                })
+            });
+
+            } 
+            
+          }) 
+          break;
       case "Add an employee":
         // Handle add an employee case
-        return inquirer.prompt(addEmployee);
+        return inquirer.prompt(addEmployee).then((data)=>{
+            db.query(`INSERT INTO employee(first_name, last_name) VALUES ("${data.addEmployeeFirstName}","${data.addEmployeeLastName})`, (err)=>{
+                if(err){
+                  console.log(err)
+                } 
+            })
+        });
        
       case "Update an employee role":
         // Handle update an employee role case
