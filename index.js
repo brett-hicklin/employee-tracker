@@ -21,15 +21,17 @@ const initialQuestions = [
         choices: ["View all departments", "View all roles","View all employees","Add a department","Add a role","Add an employee","Update an employee role"],
         name: "selection",
        // when: (answer) => answer.addEmployee === true
-      },
-
+      }
+    ]
+const addDept = [
       {
         type:"input",
         message:"What is the name of the department you would like to add?",
         name:"addDepartment",
-        when:(answer)=> answer.selection === "Add a department"
-      },
+      }
 
+    ]
+const addRole = [
       {
         type:"input",
         message:"What is the name of the role you would like to add?",
@@ -39,7 +41,6 @@ const initialQuestions = [
                 return true;
             }
         },
-        when:(answer)=> answer.selection === "Add a role"
       },
       {
         type:"input",
@@ -60,7 +61,9 @@ const initialQuestions = [
         name:"addRoleDept",
         when:(answer)=> Boolean(answer.addRoleSalary)
       },
+    ]
 
+    const addEmployee = [
       {
         type:"input",
         message:"What is the first name of the employee?",
@@ -70,7 +73,6 @@ const initialQuestions = [
                 return true;
             }
         },
-        when:(answer)=> answer.selection === "Add an employee"
       },
 
       {
@@ -105,14 +107,9 @@ const initialQuestions = [
         },
         when:(answer)=> Boolean(answer.addEmployeeRole)
       },
+    ]
 
-      {
-        type:"input",
-        message:"What is the name of the department you would like to add?",
-        name:"addDepartment",
-        when:(answer)=> answer.selection === "Add a department"
-      },
-
+    const updateEmployee = [
       {
         type:"list",
         message:"Which employee would you like to update?",
@@ -123,7 +120,6 @@ const initialQuestions = [
                 return true;
             }
         },
-        when:(answer)=> answer.selection === "Update an employee role"
       },
       {
         type:"list",
@@ -135,8 +131,8 @@ const initialQuestions = [
 
 ]
 
-
-inquirer.prompt(initialQuestions).then((data)=>{
+function startPrompt(){
+return inquirer.prompt(initialQuestions).then((data)=>{
     switch (data.selection) {
       case "View all departments":
         db.query('SELECT * FROM department', (err, result)=>{
@@ -168,22 +164,31 @@ inquirer.prompt(initialQuestions).then((data)=>{
         break;
       case "Add a department":
         // Handle add a department case
+        return inquirer.prompt(addDept).then((data)=>{
+            console.log(data)
+        });
 
-        break;
+       
       case "Add a role":
         // Handle add a role case
-        break;
+        return inquirer.prompt(addRole).then((data)=>{
+            console.log(data)
+        });
+       
       case "Add an employee":
         // Handle add an employee case
-        break;
+        return inquirer.prompt(addEmployee);
+       
       case "Update an employee role":
         // Handle update an employee role case
-        break;
+        return inquirer.prompt(updateEmployee);
+       
       default:
         console.log("Invalid selection");
     }
   })
-  
+}
+startPrompt();
 
 //if view all departments then db.query('SELECT * FROM department')
 //if view all roles then db.query('SELECT * FROM role')
