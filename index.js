@@ -3,6 +3,7 @@ const mysql = require('mysql2')
 const cTable = require('console.table');
 
 
+
 const db = mysql.createConnection(
     {
       host: 'localhost',
@@ -166,6 +167,13 @@ async function getEmployeeRoleId(roleTitle){
              return roleIdResult[0][0].id;
 }
 
+async function viewAllEmployeeData(){
+    const response = await db.promise().query("SELECT employee.id,employee.first_name,employee.last_name, role.title, department.name AS department, role.salary,CONCAT(e2.first_name, ' ', e2.last_name) AS manager FROM employee LEFT JOIN role ON role.id = employee.role_id LEFT JOIN department ON role.department_id = department.id LEFT JOIN employee e2 ON employee.manager_id = e2.id;")
+
+    console.table(response[0])
+}
+
+
 function startPrompt(){
 return inquirer.prompt(initialQuestions).then(async(data)=>{
     switch (data.selection) {
@@ -173,28 +181,31 @@ return inquirer.prompt(initialQuestions).then(async(data)=>{
        const allDepts = await db.promise().query("SELECT * FROM department")
        
        console.table(allDepts[0])
-        break;
+        return startPrompt();
 
       case "View all roles":
         const allRoles = await db.promise().query("SELECT * FROM role")
         console.table(allRoles[0])
         
-        break;
-      case "View all employees":
-        // Handle view all employees case need to add salary and department. join?
-        const allEmployees = await getAllEmployees();
-        console.table(allEmployees[0])
+        return startPrompt();
 
-        break;
+      case "View all employees":
+
+       await viewAllEmployeeData()
+
+        // Handle view all employees case need to add salary and department.
+        // const allEmployees = await getAllEmployees();
+        // console.table(allEmployees[0])
+
+        return startPrompt();
 
       case "Add a department":
         // Handle add a department case
-        return inquirer.prompt(addDept).then(async(data) => {
-          await db.promise().query(`INSERT INTO department(name) VALUES (?)`,data.addDepartment)
+       const deptQuestionResponse = await inquirer.prompt(addDept)
+      
+          await db.promise().query(`INSERT INTO department(name) VALUES (?)`,deptQuestionResponse.addDepartment)
           console.log("Department successfully added!")
-        
-        });
-
+          return startPrompt();
 
       case "Add a role":
         // Handle add a role case
@@ -207,18 +218,19 @@ return inquirer.prompt(initialQuestions).then(async(data)=>{
        });
        addRole[2].choices = deptArr;
 
-       return inquirer.prompt(addRole).then(async(data) => {
+        const roleQuestionResponse = await inquirer.prompt(addRole)
          let deptId;
          res[0].forEach((dept) => {
-           if (data.addRoleDept === dept.name) {
+           if (roleQuestionResponse.addRoleDept === dept.name) {
              deptId = dept.id;
            }
          });
+
          await db.promise().query(
-           `INSERT INTO role(title,salary,department_id) VALUES (?,?,?)`,[data.addRoleName,data.addRoleSalary,deptId]);
+           `INSERT INTO role(title,salary,department_id) VALUES (?,?,?)`,[roleQuestionResponse.addRoleName,roleQuestionResponse.addRoleSalary,deptId]);
            console.log("a new role has been successfully added!")
 
-         })
+            return startPrompt();
         
       case "Add an employee":
         // Handle add an employee case
@@ -231,18 +243,18 @@ return inquirer.prompt(initialQuestions).then(async(data)=>{
            addEmployee[3].choices = employeeArr;
            
 
-           return inquirer.prompt(addEmployee).then(async(data) => {
-           const roleId = await getEmployeeRoleId(data.addEmployeeRole);
+           const addEmployeeResponse = await inquirer.prompt(addEmployee)
+           const roleId = await getEmployeeRoleId(addEmployeeResponse.addEmployeeRole);
            
              let managerId;
-             const mgrResult = await getEmployeeIdByName(data.addEmployeeManager)
+             const mgrResult = await getEmployeeIdByName(addEmployeeResponse.addEmployeeManager)
            
               managerId = mgrResult[0][0].id;
-              await db.promise().query(`INSERT INTO employee(first_name, last_name, role_id, manager_id) VALUES ("${data.addEmployeeFirstName}","${data.addEmployeeLastName}","${roleId}","${managerId}")`);
+              await db.promise().query(`INSERT INTO employee(first_name, last_name, role_id, manager_id) VALUES ("${addEmployeeResponse.addEmployeeFirstName}","${addEmployeeResponse.addEmployeeLastName}","${roleId}","${managerId}")`);
               console.log("You've successfully added a new employee!")
 
-           });
-       
+           
+            return startPrompt();
 
       case "Update an employee role":
         // Handle update an employee role case
@@ -252,17 +264,18 @@ return inquirer.prompt(initialQuestions).then(async(data)=>{
         updateEmployee[1].choices = getRoleTitleList(roles);
 
         
-        return inquirer.prompt(updateEmployee).then(async(data)=>{
+       const addUpdateEmployeeResponse = await inquirer.prompt(updateEmployee)
 
-           const updatedEmployee = await getEmployeeIdByName(data.updateEmployee)
+           const updatedEmployee = await getEmployeeIdByName(addUpdateEmployeeResponse.updateEmployee)
 
-           const updatedRole = await getEmployeeRoleId(data.updateEmployeeRole)
+           const updatedRole = await getEmployeeRoleId(addUpdateEmployeeResponse.updateEmployeeRole)
         
             await db.promise().query('UPDATE employee SET role_id = ? WHERE id = ?',[updatedRole,updatedEmployee[0][0].id])
 
           console.log("You've successfully changed roles!")
 
-        });
+            return startPrompt();
+
         case "Exit":
             process.exit();
         
@@ -272,7 +285,8 @@ return inquirer.prompt(initialQuestions).then(async(data)=>{
     }
   })
 }
-startPrompt();
+startPrompt().then(()=>{
+    startPrompt()});
 
 //if view all departments then db.query('SELECT * FROM department')
 //if view all roles then db.query('SELECT * FROM role')
