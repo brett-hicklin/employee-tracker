@@ -148,28 +148,19 @@ return inquirer.prompt(initialQuestions).then(async(data)=>{
         break;
       case "View all employees":
         // Handle view all employees case need to add salary and department. join?
-        db.query("SELECT * FROM employee", (err, result) => {
-          if (err) {
-            console.log(err);
-          } else {
-            console.table(result);
-          }
-        });
+        const allEmployees = await db.promise().query("SELECT * FROM employee")
+        console.table(allEmployees[0])
+
         break;
+
       case "Add a department":
         // Handle add a department case
-        return inquirer.prompt(addDept).then((data) => {
-          db.query(
-            `INSERT INTO department(name) VALUES ("${data.addDepartment}")`,
-            (err) => {
-              if (err) {
-                console.log(err);
-              } else {
-                console.log("Department successfully added!");
-              }
-            }
-          );
+        return inquirer.prompt(addDept).then(async(data) => {
+          await db.promise().query(`INSERT INTO department(name) VALUES (?)`,data.addDepartment)
+          console.log("Department successfully added!")
+        
         });
+
 
       case "Add a role":
         // Handle add a role case
