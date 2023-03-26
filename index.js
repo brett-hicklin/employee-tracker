@@ -11,7 +11,7 @@ const db = mysql.createConnection(
   },
   console.log(`Connected to the courses_db database.`)
 );
-
+// questions to start off prompt
 const initialQuestions = [
   {
     type: "list",
@@ -30,6 +30,7 @@ const initialQuestions = [
     // when: (answer) => answer.addEmployee === true
   },
 ];
+//questions to ask if user wants to add department
 const addDept = [
   {
     type: "input",
@@ -37,6 +38,7 @@ const addDept = [
     name: "addDepartment",
   },
 ];
+//questions to ask if user wants to add a role
 const addRole = [
   {
     type: "input",
@@ -67,7 +69,7 @@ const addRole = [
     when: (answer) => Boolean(answer.addRoleSalary),
   },
 ];
-
+//questions to ask if user wants to add an employee
 const addEmployee = [
   {
     type: "input",
@@ -113,7 +115,7 @@ const addEmployee = [
     when: (answer) => Boolean(answer.addEmployeeRole),
   },
 ];
-
+//questions to ask if user wants to update an employee
 const updateEmployee = [
   {
     type: "list",
@@ -134,15 +136,15 @@ const updateEmployee = [
     when: (answer) => answer.updateEmployee,
   },
 ];
-
+// grabs all the employees from the employee table
 async function getAllEmployees() {
   return db.promise().query("SELECT * FROM employee");
 }
-
+//grabs all roles from role table
 async function getAllRoles() {
   return db.promise().query("SELECT * FROM role");
 }
-
+// creates an array of just employee names from the employee table
 function getEmployeeNameList(employees) {
   let employeeArr = [];
   employees[0].forEach((employee) => {
@@ -150,7 +152,7 @@ function getEmployeeNameList(employees) {
   });
   return employeeArr;
 }
-
+//creates an array of role titles from the role table
 function getRoleTitleList(roleList) {
   let roleArr = [];
   roleList[0].forEach((role) => {
@@ -158,7 +160,7 @@ function getRoleTitleList(roleList) {
   });
   return roleArr;
 }
-
+//compares employee name to their id to get the first and last name
 async function getEmployeeIdByName(name) {
   const nameArr = name.split(" ");
   return db
@@ -168,14 +170,14 @@ async function getEmployeeIdByName(name) {
       nameArr[1],
     ]);
 }
-
+//gets the id by employees title
 async function getEmployeeRoleId(roleTitle) {
   const roleIdResult = await db
     .promise()
     .query("SELECT id FROM role WHERE title = ?", roleTitle);
   return roleIdResult[0][0].id;
 }
-
+// displays the all of the employees ids, first and last names, title of their roles, the departments they're in, their salaries, and their manager's name
 async function viewAllEmployeeData() {
   const response = await db
     .promise()
@@ -185,7 +187,7 @@ async function viewAllEmployeeData() {
 
   console.table(response[0]);
 }
-
+// displays all of the employee roles, including the ids, title, salary, and department they're in
 async function viewAllEmployeeRoles() {
   const response = await db
     .promise()
@@ -195,23 +197,25 @@ async function viewAllEmployeeRoles() {
 
   console.table(response[0]);
 }
-
+//asks all qustions through inquirer and handles user's answer accordingly
 function startPrompt() {
   return inquirer.prompt(initialQuestions).then(async (data) => {
     switch (data.selection) {
       case "View all departments":
+        //Handle view all departments
         const allDepts = await db.promise().query("SELECT * FROM department");
 
         console.table(allDepts[0]);
         return startPrompt();
 
       case "View all roles":
+        //Handle view all roles
         await viewAllEmployeeRoles();
 
         return startPrompt();
 
       case "View all employees":
-        // Handle view all employees case need to add salary and department.
+        // Handle view all employees case
         await viewAllEmployeeData();
 
         return startPrompt();
@@ -233,14 +237,17 @@ function startPrompt() {
         // Handle add a role case
 
         let res = await db.promise().query("SELECT * FROM department");
-        let deptArr = [];
 
+        //gets list of department names
+        let deptArr = [];
         res[0].forEach((dept) => {
           deptArr.push(dept.name);
         });
         addRole[2].choices = deptArr;
 
         const roleQuestionResponse = await inquirer.prompt(addRole);
+
+        //gets id of departments
         let deptId;
         res[0].forEach((dept) => {
           if (roleQuestionResponse.addRoleDept === dept.name) {
@@ -264,38 +271,44 @@ function startPrompt() {
 
       case "Add an employee":
         // Handle add an employee case
+
+        //gets list of role titles to be displayed on question
         const roleList = await getAllRoles();
         const roleArr = getRoleTitleList(roleList);
         addEmployee[2].choices = roleArr;
 
+        //gets list of employee names to be displayed on question
         const employees = await getAllEmployees();
         const employeeArr = getEmployeeNameList(employees);
-        employeeArr.push("None")
+        employeeArr.push("None");
         addEmployee[3].choices = employeeArr;
 
         const addEmployeeResponse = await inquirer.prompt(addEmployee);
         const roleId = await getEmployeeRoleId(
           addEmployeeResponse.addEmployeeRole
         );
+
+        //gets id of selected employee to use as new employee's manager
         let managerId;
+        if (addEmployeeResponse.addEmployeeManager === "None") {
+          managerId = null;
+        } else {
+          const mgrResult = await getEmployeeIdByName(
+            addEmployeeResponse.addEmployeeManager
+          );
 
-            if(addEmployeeResponse.addEmployeeManager === "None"){
-                managerId = null;
-            } else {
-       
-        const mgrResult = await getEmployeeIdByName(addEmployeeResponse.addEmployeeManager);
-
-        managerId = mgrResult[0][0].id;
-            }
+          managerId = mgrResult[0][0].id;
+        }
         await db
           .promise()
           .query(
-            `INSERT INTO employee(first_name, last_name, role_id, manager_id) VALUES (?,?,?,?)`,[addEmployeeResponse.addEmployeeFirstName,addEmployeeResponse.addEmployeeLastName,roleId,managerId]
-
-            
-
-            
-
+            `INSERT INTO employee(first_name, last_name, role_id, manager_id) VALUES (?,?,?,?)`,
+            [
+              addEmployeeResponse.addEmployeeFirstName,
+              addEmployeeResponse.addEmployeeLastName,
+              roleId,
+              managerId,
+            ]
           );
         console.log("You've successfully added a new employee!");
 
@@ -303,6 +316,8 @@ function startPrompt() {
 
       case "Update an employee role":
         // Handle update an employee role case
+
+        //gets employee names and all role titles to be displayed on question
         const employeeList = await getAllEmployees();
         const roles = await getAllRoles();
         updateEmployee[0].choices = getEmployeeNameList(employeeList);
@@ -337,7 +352,4 @@ function startPrompt() {
     }
   });
 }
-startPrompt().then(() => {
-  startPrompt();
-});
-
+startPrompt();
