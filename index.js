@@ -173,6 +173,11 @@ async function viewAllEmployeeData(){
     console.table(response[0])
 }
 
+async function viewAllEmployeeRoles(){
+    const response = await db.promise().query("SELECT role.id,role.title,role.salary,department.name AS department FROM role LEFT JOIN department ON role.department_id = department.id")
+
+    console.table(response[0])
+}
 
 function startPrompt(){
 return inquirer.prompt(initialQuestions).then(async(data)=>{
@@ -184,18 +189,17 @@ return inquirer.prompt(initialQuestions).then(async(data)=>{
         return startPrompt();
 
       case "View all roles":
-        const allRoles = await db.promise().query("SELECT * FROM role")
-        console.table(allRoles[0])
+        await viewAllEmployeeRoles();
+      
         
         return startPrompt();
 
       case "View all employees":
-
+ // Handle view all employees case need to add salary and department.
        await viewAllEmployeeData()
 
-        // Handle view all employees case need to add salary and department.
-        // const allEmployees = await getAllEmployees();
-        // console.table(allEmployees[0])
+       
+       
 
         return startPrompt();
 
