@@ -85,7 +85,7 @@ const addRole = [
       {
         type:"list",
         message:"What is the role of the employee?",
-        choices:["Salesperson","engineer"],
+        choices:[],
         name:"addEmployeeRole",
         validate: (value)=>{
             if(value.length){
@@ -98,7 +98,7 @@ const addRole = [
       {
         type:"list",
         message:"Who is the employee's Manager?",
-        choices:["Allen","Marcus"],
+        choices:[],
         name:"addEmployeeManager",
         validate: (value)=>{
             if(value.length){
@@ -195,7 +195,6 @@ return inquirer.prompt(initialQuestions).then((data)=>{
                     if(data.addRoleDept === dept.name){
                         deptId = dept.id
                     }
-                    
                 })
                 db.query(`INSERT INTO role(title,salary,department_id) VALUES ("${data.addRoleName}","${data.addRoleSalary}","${deptId}")`, (err,result)=>{
                     if(err){
@@ -212,13 +211,76 @@ return inquirer.prompt(initialQuestions).then((data)=>{
           break;
       case "Add an employee":
         // Handle add an employee case
-        return inquirer.prompt(addEmployee).then((data)=>{
-            db.query(`INSERT INTO employee(first_name, last_name) VALUES ("${data.addEmployeeFirstName}","${data.addEmployeeLastName})`, (err)=>{
-                if(err){
-                  console.log(err)
-                } 
+          db.query('SELECT title FROM role',(err,result)=>{
+            if(err){
+                console.log(err)
+            } else {
+            let roleArr =[];
+            result.forEach(role=>{
+                roleArr.push(role.title)
             })
-        });
+            addEmployee[2].choices = roleArr;
+
+            db.query('SELECT * FROM employee',(err,result)=>{
+                if(err){
+                    console.log(err)
+                } else {
+                let employeeArr =[];
+                result.forEach(employee=>{
+                    console.log(employee)
+                    employeeArr.push(`${employee.first_name} ${employee.last_name}`)
+                })
+                addEmployee[3].choices = employeeArr;
+                console.log(employeeArr)
+
+                return inquirer.prompt(addEmployee).then((data)=>{
+                    let roleId;
+                    db.query('SELECT id FROM role WHERE title = ?', data.addEmployeeRole, (err,result)=>{
+                       if(err){
+                        console.log(err)
+                       } else {
+                        console.log(result)
+                        roleId = result[0].id
+    
+                  
+                  
+                        let managerId;
+                        let nameArr = data.addEmployeeManager.split(" ")
+                            db.query('SELECT id FROM employee WHERE first_name = ? AND last_name =?',[nameArr[0], nameArr[1]], (err,mgrResult)=>{
+                               if(err){
+                                console.log(err)
+                               } else {
+                                console.log("this is ", mgrResult)
+                                managerId = mgrResult[0].id
+
+                                console.log(managerId)
+                                db.query(`INSERT INTO employee(first_name, last_name, role_id, manager_id) VALUES ("${data.addEmployeeFirstName}","${data.addEmployeeLastName}","${roleId}","${managerId}")`, (err)=>{
+                                    if(err){
+                                      console.log(err)
+                                    } 
+                                })
+
+                               }
+                            })  
+                            //check line 247 query
+
+                       }
+                    })
+    
+                    
+                });
+                    
+                }
+              })
+
+
+
+            }
+
+          })
+          break;
+
+        
        
       case "Update an employee role":
         // Handle update an employee role case
