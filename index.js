@@ -165,109 +165,62 @@ return inquirer.prompt(initialQuestions).then(async(data)=>{
       case "Add a role":
         // Handle add a role case
 
-        db.query("SELECT * FROM department", (err, result) => {
-          if (err) {
-            console.log(err);
-          } else {
-            let deptArr = [];
-            result.forEach((dept) => {
-              deptArr.push(dept.name);
-            });
-            addRole[2].choices = deptArr;
+       let res = await db.promise().query("SELECT * FROM department")
+       let deptArr = [];
 
-            return inquirer.prompt(addRole).then((data) => {
-              let deptId;
-              result.forEach((dept) => {
-                if (data.addRoleDept === dept.name) {
-                  deptId = dept.id;
-                }
-              });
-              db.query(
-                `INSERT INTO role(title,salary,department_id) VALUES ("${data.addRoleName}","${data.addRoleSalary}","${deptId}")`,
-                (err, result) => {
-                  if (err) {
-                    console.log(err);
-                  } else {
-                    console.log("Role successfully added!");
-                  }
-                }
-              );
-            });
-          }
-        });
-        break;
+       res[0].forEach((dept) => {
+         deptArr.push(dept.name);
+       });
+       addRole[2].choices = deptArr;
+
+       return inquirer.prompt(addRole).then(async(data) => {
+         let deptId;
+         res[0].forEach((dept) => {
+           if (data.addRoleDept === dept.name) {
+             deptId = dept.id;
+           }
+         });
+         await db.promise().query(
+           `INSERT INTO role(title,salary,department_id) VALUES (?,?,?)`,[data.addRoleName,data.addRoleSalary,deptId]);
+           console.log("a new role has been successfully added!")
+
+         })
+        
       case "Add an employee":
         // Handle add an employee case
-        db.query("SELECT title FROM role", (err, result) => {
-          if (err) {
-            console.log(err);
-          } else {
-            let roleArr = [];
-            result.forEach((role) => {
+        const roleList = await db.promise().query("SELECT title FROM role")
+        let roleArr = [];
+            roleList[0].forEach((role) => {
               roleArr.push(role.title);
             });
             addEmployee[2].choices = roleArr;
 
-            db.query("SELECT * FROM employee", (err, result) => {
-              if (err) {
-                console.log(err);
-              } else {
-                let employeeArr = [];
-                result.forEach((employee) => {
-                  console.log(employee);
-                  employeeArr.push(
-                    `${employee.first_name} ${employee.last_name}`
-                  );
-                });
-                addEmployee[3].choices = employeeArr;
-                console.log(employeeArr);
+           const employees = await db.promise().query("SELECT * FROM employee")
+           let employeeArr = [];
+           employees[0].forEach((employee) => {
+            
+             employeeArr.push(
+               `${employee.first_name} ${employee.last_name}`
+             );
+           });
+           addEmployee[3].choices = employeeArr;
+           
 
-                return inquirer.prompt(addEmployee).then((data) => {
-                  let roleId;
-                  db.query(
-                    "SELECT id FROM role WHERE title = ?",
-                    data.addEmployeeRole,
-                    (err, result) => {
-                      if (err) {
-                        console.log(err);
-                      } else {
-                        console.log(result);
-                        roleId = result[0].id;
+           return inquirer.prompt(addEmployee).then(async(data) => {
+             let roleId;
+             const roleIdResult = await db.promise().query("SELECT id FROM role WHERE title = ?",data.addEmployeeRole)
+             roleId = roleIdResult[0][0].id;
 
-                        let managerId;
-                        let nameArr = data.addEmployeeManager.split(" ");
-                        db.query(
-                          "SELECT id FROM employee WHERE first_name = ? AND last_name =?",
-                          [nameArr[0], nameArr[1]],
-                          (err, mgrResult) => {
-                            if (err) {
-                              console.log(err);
-                            } else {
-                              console.log("this is ", mgrResult);
-                              managerId = mgrResult[0].id;
+             let managerId;
+             const nameArr = data.addEmployeeManager.split(" ");
+             const mgrResult = await db.promise().query("SELECT id FROM employee WHERE first_name = ? AND last_name =?",[nameArr[0], nameArr[1]])
+              
+              managerId = mgrResult[0][0].id;
+              await db.promise().query(`INSERT INTO employee(first_name, last_name, role_id, manager_id) VALUES ("${data.addEmployeeFirstName}","${data.addEmployeeLastName}","${roleId}","${managerId}")`);
+              console.log("You've successfully added a new employee!")
 
-                              console.log(managerId);
-                              db.query(
-                                `INSERT INTO employee(first_name, last_name, role_id, manager_id) VALUES ("${data.addEmployeeFirstName}","${data.addEmployeeLastName}","${roleId}","${managerId}")`,
-                                (err) => {
-                                  if (err) {
-                                    console.log(err);
-                                  }
-                                }
-                              );
-                            }
-                          }
-                        );
-                        //check line 247 query
-                      }
-                    }
-                  );
-                });
-              }
-            });
-          }
-        });
-        break;
+           });
+       
 
       case "Update an employee role":
         // Handle update an employee role case
