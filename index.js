@@ -113,7 +113,7 @@ const addRole = [
       {
         type:"list",
         message:"Which employee would you like to update?",
-        choices:["brett"],
+        choices:[],
         name:"updateEmployee",
         validate: (value)=>{
             if(value){
@@ -124,13 +124,47 @@ const addRole = [
       {
         type:"list",
         message:"What is their new role?",
-        choices:["cat","dog"],
+        choices:[],
         name:"updateEmployeeRole",
         when:(answer)=> answer.updateEmployee
       }
 
 ]
 
+async function getAllEmployees(){
+    return db.promise().query("SELECT * FROM employee")
+}
+
+async function getAllRoles(){
+    return db.promise().query("SELECT * FROM role")
+}
+
+function getEmployeeNameList(employees) {
+  let employeeArr = [];
+  employees[0].forEach((employee) => {
+    employeeArr.push(`${employee.first_name} ${employee.last_name}`);
+  })
+  return employeeArr;
+}
+
+function getRoleTitleList(roleList){
+    let roleArr = [];
+    roleList[0].forEach((role) => {
+      roleArr.push(role.title);
+    });
+    return roleArr;
+}
+
+async function getEmployeeIdByName(name){
+    const nameArr = name.split(" ");
+             return db.promise().query("SELECT id FROM employee WHERE first_name = ? AND last_name =?",[nameArr[0], nameArr[1]])
+}
+
+async function getEmployeeRoleId(roleTitle){
+            
+             const roleIdResult = await db.promise().query("SELECT id FROM role WHERE title = ?",roleTitle)
+             return roleIdResult[0][0].id;
+}
 
 function startPrompt(){
 return inquirer.prompt(initialQuestions).then(async(data)=>{
@@ -148,7 +182,7 @@ return inquirer.prompt(initialQuestions).then(async(data)=>{
         break;
       case "View all employees":
         // Handle view all employees case need to add salary and department. join?
-        const allEmployees = await db.promise().query("SELECT * FROM employee")
+        const allEmployees = await getAllEmployees();
         console.table(allEmployees[0])
 
         break;
@@ -188,33 +222,21 @@ return inquirer.prompt(initialQuestions).then(async(data)=>{
         
       case "Add an employee":
         // Handle add an employee case
-        const roleList = await db.promise().query("SELECT title FROM role")
-        let roleArr = [];
-            roleList[0].forEach((role) => {
-              roleArr.push(role.title);
-            });
+        const roleList = await getAllRoles();
+        const roleArr = getRoleTitleList(roleList);
             addEmployee[2].choices = roleArr;
 
-           const employees = await db.promise().query("SELECT * FROM employee")
-           let employeeArr = [];
-           employees[0].forEach((employee) => {
-            
-             employeeArr.push(
-               `${employee.first_name} ${employee.last_name}`
-             );
-           });
+           const employees = await getAllEmployees();
+           const employeeArr = getEmployeeNameList(employees)
            addEmployee[3].choices = employeeArr;
            
 
            return inquirer.prompt(addEmployee).then(async(data) => {
-             let roleId;
-             const roleIdResult = await db.promise().query("SELECT id FROM role WHERE title = ?",data.addEmployeeRole)
-             roleId = roleIdResult[0][0].id;
-
+           const roleId = await getEmployeeRoleId(data.addEmployeeRole);
+           
              let managerId;
-             const nameArr = data.addEmployeeManager.split(" ");
-             const mgrResult = await db.promise().query("SELECT id FROM employee WHERE first_name = ? AND last_name =?",[nameArr[0], nameArr[1]])
-              
+             const mgrResult = await getEmployeeIdByName(data.addEmployeeManager)
+           
               managerId = mgrResult[0][0].id;
               await db.promise().query(`INSERT INTO employee(first_name, last_name, role_id, manager_id) VALUES ("${data.addEmployeeFirstName}","${data.addEmployeeLastName}","${roleId}","${managerId}")`);
               console.log("You've successfully added a new employee!")
@@ -224,7 +246,23 @@ return inquirer.prompt(initialQuestions).then(async(data)=>{
 
       case "Update an employee role":
         // Handle update an employee role case
-        return inquirer.prompt(updateEmployee);
+        const employeeList = await getAllEmployees();
+        const roles = await getAllRoles();
+        updateEmployee[0].choices = getEmployeeNameList(employeeList);
+        updateEmployee[1].choices = getRoleTitleList(roles);
+
+        
+        return inquirer.prompt(updateEmployee).then(async(data)=>{
+
+           const updatedEmployee = await getEmployeeIdByName(data.updateEmployee)
+
+           const updatedRole = await getEmployeeRoleId(data.updateEmployeeRole)
+        
+            await db.promise().query('UPDATE employee SET role_id = ? WHERE id = ?',[updatedRole,updatedEmployee[0][0].id])
+
+          console.log("You've successfully changed roles!")
+
+        });
 
       default:
         console.log("Invalid selection");
